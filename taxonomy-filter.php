@@ -6,7 +6,6 @@ function cftf_build_form($args) {
 }
 
 class CF_Taxonomy_Filter {
-	public $args;
 
 	function __construct($args) {
 		// These keys are always required so we don't have to think about them later.
@@ -18,7 +17,6 @@ class CF_Taxonomy_Filter {
 	}
 
 	static function add_actions() {
-		// 11 to catch anyone registering post types and taxonomies on init 10
 		add_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'), 11);
 	}
 
@@ -53,6 +51,20 @@ class CF_Taxonomy_Filter {
 		echo '<input type="text" placeholder="End Date" name="cftf_date[end]" class="cftf-date" />';
 	}
 
+
+	/**
+	 * Echo a taxonomy filter form element.
+	 *
+	 * @param $taxonomy string The taxonomy slug to generate the form for
+	 * @param $args array Optional array of arguments. 
+	 *		'data-placehold' is placeholder text for the input
+	 *		'prefix' is a prefix added to the term dropdown. For typeahead support, users will
+	 *			have to type the prefix as well.
+	 *		'multiple' Determines whether or not multiple terms can be selected
+	 *		'selected' is an array of term names which are preselected on initial form generation
+	 * 		all additional arguments are attributes of the select box. see allowed_attributes();
+	 * @return void
+	 **/
 	public static function tax_filter($taxonomy, $args = array()) {
 		if (!taxonomy_exists($taxonomy)) {
 			return;
@@ -114,6 +126,17 @@ class CF_Taxonomy_Filter {
 
 	}
 
+	/**
+	 * Echo a submit form element. 
+	 *
+	 * @param $args array Optional array of arguments. 
+	 *		'data-placehold' is placeholder text for the input
+	 *		'user_query' is an array of WP_User_Query arguments to override which
+	 *			 users are selectable (no backend enforcing of these)
+	 *		'selected' is an array of user ids which are preselected on initial form generation
+	 * 		all additional arguments are attributes of the select box. see allowed_attributes();
+	 * @return void
+	 **/
 	public static function author_select($args = array()) {
 		$defaults = array(
 			'selected' => array(),
@@ -158,6 +181,13 @@ class CF_Taxonomy_Filter {
 		echo $output;
 	}
 
+	/**
+	 * Echo a submit form element. 
+	 *
+	 * @param $args array Optional array of arguments. 'text' is the submit button value,
+	 * all additional arguments are attributes of the input. see allowed_attributes();
+	 * @return void
+	 **/
 	public static function submit_button($args = array()) {
 		$defaults = array(
 			'text' => __('Submit', 'cftf'),
@@ -169,9 +199,11 @@ class CF_Taxonomy_Filter {
 		echo '<input type="submit"'.self::_build_attrib_string($args).' />';
 	}
 
+	/**
+	 * Generates and echos a hidden form based on submitted filter data
+	 **/ 
 	public static function queried_form() {
-
-		// The existing form can be modified for a new search, need to keep original data around
+		// The existing form can be modified for a new search, need to keep original data around so we can paginate it
 		if (isset($_POST['cftf_action']) && $_POST['cftf_action'] == 'filter') {
 			$output = '
 <form id="cftf-query" method="POST" style="display:none;">';
@@ -201,6 +233,12 @@ class CF_Taxonomy_Filter {
 		}
 	}
 
+	/**
+	 * Opens the form tag, as well as creating a hidden form of previous
+	 * filter data which is utilized for pagination
+	 * @param $args array Option argument array, each of which are just attributes on the form element
+	 * @return void
+	 **/
 	public static function start_form($args = array()) {
 		$defaults = array(
 			'id' => 'cftf-filter',
@@ -222,7 +260,10 @@ class CF_Taxonomy_Filter {
 </form>';
 	}
 
-	// Attribute builder
+	/**
+     * Build an attribute string for an HTML element, only attributes from
+     * allowed_attributes will be allowed
+     **/
 	static function _build_attrib_string($attributes) {
 		if (!is_array($attributes)) {
 			return '';
@@ -246,6 +287,9 @@ class CF_Taxonomy_Filter {
 		return $string;
 	}
 
+	/**
+     * What attributes can be placed on the various form elements, filterable
+     **/
 	static function allowed_attributes() {
 		return apply_filters('cftf_allowed_attributes', array(
 			'class',
@@ -261,6 +305,9 @@ class CF_Taxonomy_Filter {
 		));
 	}
 
+	/**
+     * Filter the WHERE clause in the query as WP_Query does not support a range function as of 3.5
+     **/
 	public static function posts_where($where) {
 		remove_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
 		global $wpdb;
@@ -292,7 +339,9 @@ class CF_Taxonomy_Filter {
 		return $where;
 	}
 
-
+	/**
+     * Override default query with the filtered values
+     **/
 	public static function pre_get_posts($query_obj) {
 		global $cftl_previous, $wp_rewrite;
 		if (!$query_obj->is_main_query() || !isset($_POST['cftf_action']) || $_POST['cftf_action'] != 'filter') {
@@ -336,7 +385,15 @@ class CF_Taxonomy_Filter {
 	}
 
 	function navigation() {
-		// Controlled by sending previous data in a hidden form
+		// Controlled by sending previous data in a hidden form (see JS)
+
+	}
+
+	function navigation_next() {
+
+	}
+
+	function navigation_previous() {
 
 	}
 }
