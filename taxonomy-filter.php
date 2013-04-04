@@ -9,14 +9,23 @@ class CF_Taxonomy_Filter {
 	public $args;
 
 	function __construct($args) {
-		$this->options = $args;
+		// These keys are always required so we don't have to think about them later.
+		$default_keys = array(
+			'form_options' => array(),
+			'submit_options' => array(),
+		);
+		$this->options = array_merge($default_keys, $args);
+	}
+
+	static function add_actions() {
+		// 11 to catch anyone registering post types and taxonomies on init 10
+		add_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'), 11);
 	}
 
 	public function build_form() {
+		self::start_form($this->options['form_options']);
 
-		self::start_form($args);
-
-		if (isset($this->options['taxonomies']) && is_array($this->options['taxonomies'])) {
+		if (!empty($this->options['taxonomies'])) {
 			foreach ($this->options['taxonomies'] as $taxonomy => $args) {
 				if (is_array($args)) {
 					self::tax_filter($taxonomy, $args);
@@ -29,21 +38,17 @@ class CF_Taxonomy_Filter {
 		}
 
 		if (!empty($this->options['authors'])) {
-			$author_options = !empty($this->options['author_options']) ? $this->options['author_options'] : array();
-			self::author_select($author_options);
+			self::author_select($this->options['authors']);
 		}
 
-		$submit_options = !empty($this->options['submit_options']) ? $this->options['submit_options'] : array();
-
-		
-		self::submit_button($submit_options);
+		self::submit_button($this->options['submit_options']);
 
 		self::end_form();
 	}
 
 	public static function date_filter($args) {
-		echo '<input type="text" placeholder="Start Date" name="cftf_start_date" class="cftf-date" /> to ';
-		echo '<input type="text" placeholder="End Date" name="cftf_end_date" class="cftf-date" />';
+		echo '<input type="text" placeholder="Start Date" name="cftf_date[start]" class="cftf-date" /> to ';
+		echo '<input type="text" placeholder="End Date" name="cftf_date[end]" class="cftf-date" />';
 	}
 
 	public static function tax_filter($taxonomy, $args = array()) {
@@ -54,6 +59,7 @@ class CF_Taxonomy_Filter {
 		$tax_obj = get_taxonomy($taxonomy);
 
 		$defaults = array(
+			'prefix' => '',
 			'multiple' => true,
 			'selected' => '',
 			'data-placeholder' => $tax_obj->labels->name,
@@ -61,7 +67,7 @@ class CF_Taxonomy_Filter {
 
 		$args = array_merge($defaults, $args);
 
-		// Always need cftf-tax-filter as a class so choson can target it
+		// Always need cftf-tax-filter as a class so chosen can target it
 		if (!empty($args['class'])) {
 			$args['class'] .= ' cftf-tax-select';
 		}
@@ -69,19 +75,18 @@ class CF_Taxonomy_Filter {
 			$args['class'] = 'cftf-tax-select';
 		}
 
-
-		$terms = get_terms($taxonomy);
+		$terms = get_terms($taxonomy, array('hide_empty' => false));
 		
 		// Build the select form element
-		$output = '<select'.self::_build_attrib_string($args);
+		$output = '<select name="'.esc_attr('cftf_tax['.$taxonomy.']').'"'.self::_build_attrib_string($args);
 		if ($args['multiple']) {
 			$output .= 'multiple ';
 		}
 		$output .= '>';
 
 		foreach ($terms as $term) {
-			// @TODO allow for multiple selected?
-			$output .= '<option value=""'.selected($args['selected'], $term->name, false).'>'.esc_html($term->name).'</option>';
+			// @TODO allow for multiple initially selected?
+			$output .= '<option value="'.esc_attr($term->term_id).'"'.selected($args['selected'], $term->name, false).'>'.esc_html($args['prefix'].$term->name).'</option>';
 		}
 
 		$output .= '</select>';
@@ -96,13 +101,12 @@ class CF_Taxonomy_Filter {
 			'data-placeholder' => __('Author', 'cftf'),
 			'user_query' => array(
 				'orderby' => 'display_name',
-
 			)
 		);
 
 		$args = array_merge($defaults, $args);
 
-		// Always need cftf-author-filter as a class so choson can target it
+		// Always need cftf-author-filter as a class so chosen can target it
 		if (!empty($args['class'])) {
 			$args['class'] .= ' cftf-author-select';
 		}
@@ -117,30 +121,35 @@ class CF_Taxonomy_Filter {
 		}
 
 
-		$output = '<select'.self::_build_attrib_string($args).'>';
+		$output = '<select name="cftf_author"'.self::_build_attrib_string($args).'>';
 
 		foreach ($users as $user) {
-			// @TODO allow for multiple selected?
+			// @TODO allow for multiple select and selected? Would need to use an OR here in query
 			$output .= '<option value=""'.selected($args['selected'], $user->data->user_login, false).'>'.esc_html($user->data->display_name).'</option>';
 		}
 
 		$output .= '</select>';
 
 		echo $output;
-
-
 	}
 
 	public static function submit_button($args = array()) {
+		$defaults = array(
+			'text' => __('Submit', 'cftf'),
+			'class' => '',
+			'id' => '',
+		);
+		$args = array_merge($defaults, $args);
 
+		echo '<input type="submit"'.self::_build_attrib_string($args).' />';
 	}
 
-	public static function start_form($args) {
+	public static function start_form($args = array()) {
 		$defaults = array(
 			'id' => 'cftf-filter',
 			'class' => '',
 			'method' => 'POST',
-			'action' => home_url(),
+			'action' => home_url('?s='),
 		);
 
 		$args = array_merge($defaults, $args);
@@ -151,14 +160,13 @@ class CF_Taxonomy_Filter {
 
 	public static function end_form() {
 		echo '
-	<input type="hidden" name="cftf_action" value="filter">
+	<input type="hidden" name="cftf_override" value="0" />
+	<input type="hidden" name="cftf_logic" value="AND" />
+	<input type="hidden" name="cftf_action" value="filter" />
 </form>';
 	}
 
-	// Request handler
-
-	// Attributes
-
+	// Attribute builder
 	static function _build_attrib_string($attributes) {
 		if (!is_array($attributes)) {
 			return '';
@@ -196,10 +204,108 @@ class CF_Taxonomy_Filter {
 			'tabindex',
 		));
 	}
+
+	function parse_filterables($taxonomies, $authors, $date_range) {
+		$query_args = array();
+
+		if (!empty($authors)) {
+			// WP_Query doesnt accept an array of authors, sad panda 8:(
+			$query_args = implode(',', $authors);
+		}
+
+		if (!empty($taxonomies)) {
+			foreach ($taxonomies as $taxonomy => $terms) {
+				$query_args['tax_query'][] = array(
+					'taxonomy' => $taxonomy,
+					'field' => 'ids',
+					'terms' => $terms,
+					'include_children' => false,
+					'operator' => 'AND',
+				);
+			}
+
+			$query_args['tax_query']['relation'] = 'AND';
+		}
+
+		if (!empty($date_range)) {
+			$query_args['suppress_filters'] = 0;
+			// @TODO probably a SQL filter...
+		}
+	}
+
+	public static function posts_where($where) {
+		remove_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
+		global $wpdb;
+		
+		if (!empty($_POST['cftf_date']['start'])) {
+			$php_date = strtotime($_POST['cftf_date']['start']);
+			$mysql_date = date('Y-m-d H:i:s', $php_date);
+			$date_where = $wpdb->prepare("AND $wpdb->posts.post_date > %s", $mysql_date);
+			if (!empty($where)) {
+				$where .= ' '.$date_where;
+			}
+			else {
+				$where = $date_where;
+			}
+		}
+
+		if (!empty($_POST['cftf_date']['end'])) {
+			$php_date = strtotime($_POST['cftf_date']['end']);
+			$mysql_date = date('Y-m-d H:i:s', $php_date);
+			$date_where = $wpdb->prepare("AND $wpdb->posts.post_date < %s", $mysql_date);
+			if (!empty($where)) {
+				$where .= ' '.$date_where;
+			}
+			else {
+				$where = $date_where;
+			}
+		}
+
+		return $where;
+	}
+
+
+	public static function pre_get_posts($query_obj) {
+		global $cftl_previous, $wp_rewrite;
+		if (!$query_obj->is_main_query() || !isset($_POST['cftf_action']) || $_POST['cftf_action'] != 'filter') {
+			return;
+		}
+		remove_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'));
+		$query_args = array(
+			// @TODO figure out best way to support pagination
+			'posts_per_page' => -1,
+		);
+		if (!empty($_POST['cftf_authors'])) {
+			// WP_Query doesnt accept an array of authors, sad panda 8:(
+			$query_obj->query_vars['author'] = implode(',', $_POST['cftf_authors']);
+		}
+
+		if (!empty($_POST['cftf_tax']) && is_array($_POST['cftf_tax'])) {
+			foreach ($_POST['cftf_tax'] as $taxonomy => $terms) {
+				$query_obj->query_vars['tax_query'][] = array(
+					'taxonomy' => $taxonomy,
+					'field' => 'ids',
+					'terms' => $terms,
+					'include_children' => false,
+					'operator' => 'AND',
+				);
+			}
+
+			$query_obj->query_vars['tax_query']['relation'] = 'AND';
+		}
+
+		// Have to manually filter date range
+		if (!empty($_POST['cftf_date']['start']) || !empty($_POST['cftf_date']['end'])) {
+			$query_obj->query_vars['suppress_filters'] = 0;
+			add_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
+		}
+
+	}
 }
 
-function cftf_enqueue_scripts() {
+CF_Taxonomy_Filter::add_actions();
 
+function cftf_enqueue_scripts() {
 	// Figure out the URL for this file.
 	$parent_dir = trailingslashit(get_template_directory());
 	$child_dir = trailingslashit(get_stylesheet_directory());
@@ -246,6 +352,7 @@ $args = array(
 			'id' => '',
 			'class' => '',
 			'selected' => '', // Term name
+			'prefix' => '',
 		),
 		'code' => array(),
 		'post_tag' => array(),

@@ -1,7 +1,12 @@
-This library aids in building a working form that can filter by taxonomy terms, author and date range.
+This library aids in building a working form that can filter posts by taxonomy terms, author and date range.
 
 # Usage
 
 
 
 ## Build your own
+
+
+# Future ideas
+- Filter by post type
+- Allow search term to be passed in
