@@ -121,11 +121,11 @@ class CF_Taxonomy_Filter {
 		}
 
 
-		$output = '<select name="cftf_author"'.self::_build_attrib_string($args).'>';
+		$output = '<select name="cftf_authors"'.self::_build_attrib_string($args).'>';
 
 		foreach ($users as $user) {
 			// @TODO allow for multiple select and selected? Would need to use an OR here in query
-			$output .= '<option value=""'.selected($args['selected'], $user->data->user_login, false).'>'.esc_html($user->data->display_name).'</option>';
+			$output .= '<option value="'.$user->ID.'"'.selected($args['selected'], $user->data->user_login, false).'>'.esc_html($user->data->display_name).'</option>';
 		}
 
 		$output .= '</select>';
@@ -148,14 +148,13 @@ class CF_Taxonomy_Filter {
 		$defaults = array(
 			'id' => 'cftf-filter',
 			'class' => '',
-			'method' => 'POST',
 			'action' => home_url('?s='),
 		);
 
 		$args = array_merge($defaults, $args);
 
 		echo '
-<form'.self::_build_attrib_string($args).'>';
+<form method="POST"'.self::_build_attrib_string($args).'>';
 	}
 
 	public static function end_form() {
@@ -205,34 +204,6 @@ class CF_Taxonomy_Filter {
 		));
 	}
 
-	function parse_filterables($taxonomies, $authors, $date_range) {
-		$query_args = array();
-
-		if (!empty($authors)) {
-			// WP_Query doesnt accept an array of authors, sad panda 8:(
-			$query_args = implode(',', $authors);
-		}
-
-		if (!empty($taxonomies)) {
-			foreach ($taxonomies as $taxonomy => $terms) {
-				$query_args['tax_query'][] = array(
-					'taxonomy' => $taxonomy,
-					'field' => 'ids',
-					'terms' => $terms,
-					'include_children' => false,
-					'operator' => 'AND',
-				);
-			}
-
-			$query_args['tax_query']['relation'] = 'AND';
-		}
-
-		if (!empty($date_range)) {
-			$query_args['suppress_filters'] = 0;
-			// @TODO probably a SQL filter...
-		}
-	}
-
 	public static function posts_where($where) {
 		remove_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
 		global $wpdb;
@@ -275,9 +246,11 @@ class CF_Taxonomy_Filter {
 			// @TODO figure out best way to support pagination
 			'posts_per_page' => -1,
 		);
+
+		$query_obj->is_search = true;
 		if (!empty($_POST['cftf_authors'])) {
 			// WP_Query doesnt accept an array of authors, sad panda 8:(
-			$query_obj->query_vars['author'] = implode(',', $_POST['cftf_authors']);
+			$query_obj->query_vars['author'] = implode(',', (array) $_POST['cftf_authors']);
 		}
 
 		if (!empty($_POST['cftf_tax']) && is_array($_POST['cftf_tax'])) {
