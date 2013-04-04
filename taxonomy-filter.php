@@ -46,18 +46,39 @@ class CF_Taxonomy_Filter {
 		self::end_form();
 	}
 
-	public static function date_filter($args) {
-		echo '<input type="text" placeholder="Start Date" name="cftf_date[start]" class="cftf-date" /> to ';
-		echo '<input type="text" placeholder="End Date" name="cftf_date[end]" class="cftf-date" />';
-	}
+	/**
+	 * Echo a date range filter form elemtn
+	 *
+	 * @param $start_args array Optional array of arguments for start range input. All options are attributes on the element.
+	 * @param $end_args array Optional array of arguments for end range input. All options are attributes on the element.
+	 * @return void
+	 **/
+	public static function date_filter($start_args = array(), $end_args = array()) {
+		$start_defaults = array(
+			'placeholder' => __('Start Date', 'cftf'),
+		);
+		$end_defaults = array(
+			'placeholder' => __('End Date', 'cftf'),
+		);
 
+		$start_args = array_merge($start_defaults, $start_args);
+		$start_args = self::_add_class($start_args, 'cftf-date');
+
+		$end_args = array_merge($end_defaults, $end_args);
+		$end_args = self::_add_class($end_args, 'cftf-date');
+
+		echo sprintf(__('%s to %s', 'cftf'), 
+			'<input type="text" name="cftf_date[start]"'.self::_build_attrib_string($start_args).' />', 
+			'<input type="text" name="cftf_date[end]"'.self::_build_attrib_string($end_args).' />'
+		);
+	}
 
 	/**
 	 * Echo a taxonomy filter form element.
 	 *
 	 * @param $taxonomy string The taxonomy slug to generate the form for
 	 * @param $args array Optional array of arguments. 
-	 *		'data-placehold' is placeholder text for the input
+	 *		'data-placeholder' is placeholder text for the input
 	 *		'prefix' is a prefix added to the term dropdown. For typeahead support, users will
 	 *			have to type the prefix as well.
 	 *		'multiple' Determines whether or not multiple terms can be selected
@@ -81,8 +102,7 @@ class CF_Taxonomy_Filter {
 
 		$args = array_merge($defaults, $args);
 
-		// Set the initially selected arguments. Try for previous queried, if none exists, get the if of the term names
-		
+		// Set the initially selected arguments. Try for previous queried, if none exists, get the id of the term names passed in
 		if (!empty($_POST['cftf_action'])) {
 			$args['selected'] = isset($_POST['cftf_taxonomies'][$taxonomy]) ? (array) $_POST['cftf_taxonomies'][$taxonomy] : array();
 		}
@@ -97,14 +117,8 @@ class CF_Taxonomy_Filter {
 			}
 		}
 
-
 		// Always need cftf-tax-filter as a class so chosen can target it
-		if (!empty($args['class'])) {
-			$args['class'] .= ' cftf-tax-select';
-		}
-		else {
-			$args['class'] = 'cftf-tax-select';
-		}
+		$args = self::_add_class($args, 'cftf-tax-select');
 
 		$terms = get_terms($taxonomy, array('hide_empty' => false));
 		
@@ -123,14 +137,13 @@ class CF_Taxonomy_Filter {
 		$output .= '</select>';
 
 		echo $output;
-
 	}
 
 	/**
 	 * Echo a submit form element. 
 	 *
 	 * @param $args array Optional array of arguments. 
-	 *		'data-placehold' is placeholder text for the input
+	 *		'data-placeholder' is placeholder text for the input
 	 *		'user_query' is an array of WP_User_Query arguments to override which
 	 *			 users are selectable (no backend enforcing of these)
 	 *		'selected' is an array of user ids which are preselected on initial form generation
@@ -155,13 +168,7 @@ class CF_Taxonomy_Filter {
 		$args['selected'] = (array) $args['selected'];
 
 		// Always need cftf-author-filter as a class so chosen can target it
-		if (!empty($args['class'])) {
-			$args['class'] .= ' cftf-author-select';
-		}
-		else {
-			$args['class'] = 'cftf-author-select';
-		}
-
+		$args = self::_add_class($args, 'cftf-author-select');
 
 		$user_query = new WP_User_Query($args['user_query']);
 		if (!empty($user_query->results)) {
@@ -258,6 +265,17 @@ class CF_Taxonomy_Filter {
 		echo '
 	<input type="hidden" name="cftf_action" value="filter" />
 </form>';
+	}
+
+	static function _add_class($args, $class) {
+		if (!empty($args['class'])) {
+			$args['class'] .= ' '.$class;
+		}
+		else {
+			$args['class'] = $class;
+		}
+
+		return $args;
 	}
 
 	/**
