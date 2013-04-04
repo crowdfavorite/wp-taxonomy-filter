@@ -67,7 +67,7 @@ class CF_Taxonomy_Filter {
 		$end_args = array_merge($end_defaults, $end_args);
 		$end_args = self::_add_class($end_args, 'cftf-date');
 
-		echo sprintf(__('%s to %s', 'cftf'), 
+		echo sprintf(_x('%s to %s', 'start date range input TO end date range input', 'cftf'), 
 			'<input type="text" name="cftf_date[start]"'.self::_build_attrib_string($start_args).' />', 
 			'<input type="text" name="cftf_date[end]"'.self::_build_attrib_string($end_args).' />'
 		);
@@ -152,6 +152,7 @@ class CF_Taxonomy_Filter {
 	 **/
 	public static function author_select($args = array()) {
 		$defaults = array(
+			'multiple' => false,
 			'selected' => array(),
 			'data-placeholder' => __('Author', 'cftf'),
 			'user_query' => array(
@@ -175,8 +176,11 @@ class CF_Taxonomy_Filter {
 			$users = apply_filters('cftf_users', $user_query->results);
 		}
 
-
-		$output = '<select name="cftf_authors[]"'.self::_build_attrib_string($args).'>';
+		$output = '<select name="cftf_authors[]"'.self::_build_attrib_string($args);
+		if ($args['multiple']) {
+			$output .= 'multiple ';
+		}
+		$output .= '>';
 
 		foreach ($users as $user) {
 			// @TODO allow for multiple select and selected? Would need to use an OR here in query
@@ -243,6 +247,7 @@ class CF_Taxonomy_Filter {
 	/**
 	 * Opens the form tag, as well as creating a hidden form of previous
 	 * filter data which is utilized for pagination
+	 *
 	 * @param $args array Option argument array, each of which are just attributes on the form element
 	 * @return void
 	 **/
@@ -454,34 +459,51 @@ add_action('wp_enqueue_scripts', 'cftf_enqueue_scripts');
 /* Potential arguments for constructor
 $args = array(
 	'form_options' => array(
-		'id' => '',
-		'classes' => '',
-		'method' => '',
-		'action' => '',
-		'onsubmit' => '',
+		// Array of allowed element attributes
 	),
 	'taxonomies' => array(
 		'projects' => array(
-			'id' => '',
-			'class' => '',
-			'selected' => '', // Term name
-			'prefix' => '',
+			'multiple' => false,
+			// Term names
+			'selected' => array(
+				'Project 1',
+				'Project 2',
+				'SecretProject'
+			), 
+			'prefix' => '@',
+			'data-placeholder' => 'Projects'
 		),
-		'code' => array(),
-		'post_tag' => array(),
+		'post_tag' => array(
+			'multiple' => true,
+			'selected' => array(
+					'tag1',
+					'you\'re it',
+					'freeze tag'
+				),
+				'prefix' => '#',
+			'data-placeholder' => 'The Great Tag Filter'
+		),
 	),
-	'authors' => 1,
+	'authors' => 1, // Determines wether or not to display an author filter
 	'author_options' => array(
-		'user_query',
+		'multiple' => true,
+		'user_query' => array(
+			'role' => 'editor',
+		),
+		// Element attributes
 	),
 	'submit_options' => array(
-		'text' => 'Submit',
-		'class' => '',
-		'id' => '',
+		'text' => 'Submit', // Submit button value
+		// Element attributes
 	),
-	'date' => 1,
+	'date' => 1, // Determines wether or not to display a date range filter
 	'date_options' => array(
-		
+		'start' => array(
+			// Element attributes
+		),
+		'end' => array(
+			// Element attributes
+		)
 	),
 )
 */
