@@ -43,6 +43,8 @@ class CF_Taxonomy_Filter {
 
 		self::submit_button($this->options['submit_options']);
 
+		self::the_content();
+
 		self::end_form();
 	}
 
@@ -61,11 +63,28 @@ class CF_Taxonomy_Filter {
 		$defaults = array(
 			'prefix' => '',
 			'multiple' => true,
-			'selected' => '',
+			'selected' => array(),
 			'data-placeholder' => $tax_obj->labels->name,
 		);
 
 		$args = array_merge($defaults, $args);
+
+		// Set the initially selected arguments. Try for previous queried, if none exists, get the if of the term names
+		
+		if (!empty($_POST['cftf_action'])) {
+			$args['selected'] = isset($_POST['cftf_taxonomies'][$taxonomy]) ? (array) $_POST['cftf_taxonomies'][$taxonomy] : array();
+		}
+		else if (!empty($args['selected'])) {
+			$selected_names = (array) $args['selected'];
+			$args['selected'] = array();
+			foreach ($selected_names as $term_name) {
+				$term = get_term_by('name', $term_name, $taxonomy);
+				if ($term) {
+					$args['selected'][] = $term->term_id;
+				}
+			}
+		}
+
 
 		// Always need cftf-tax-filter as a class so chosen can target it
 		if (!empty($args['class'])) {
@@ -78,7 +97,7 @@ class CF_Taxonomy_Filter {
 		$terms = get_terms($taxonomy, array('hide_empty' => false));
 		
 		// Build the select form element
-		$output = '<select name="'.esc_attr('cftf_tax['.$taxonomy.']').'"'.self::_build_attrib_string($args);
+		$output = '<select name="'.esc_attr('cftf_taxonomies['.$taxonomy.'][]').'"'.self::_build_attrib_string($args);
 		if ($args['multiple']) {
 			$output .= 'multiple ';
 		}
@@ -86,7 +105,7 @@ class CF_Taxonomy_Filter {
 
 		foreach ($terms as $term) {
 			// @TODO allow for multiple initially selected?
-			$output .= '<option value="'.esc_attr($term->term_id).'"'.selected($args['selected'], $term->name, false).'>'.esc_html($args['prefix'].$term->name).'</option>';
+			$output .= '<option value="'.esc_attr($term->term_id).'"'.selected(in_array($term->term_id, $args['selected']), true, false).'>'.esc_html($args['prefix'].$term->name).'</option>';
 		}
 
 		$output .= '</select>';
@@ -97,7 +116,7 @@ class CF_Taxonomy_Filter {
 
 	public static function author_select($args = array()) {
 		$defaults = array(
-			'selected' => '',
+			'selected' => array(),
 			'data-placeholder' => __('Author', 'cftf'),
 			'user_query' => array(
 				'orderby' => 'display_name',
@@ -105,6 +124,12 @@ class CF_Taxonomy_Filter {
 		);
 
 		$args = array_merge($defaults, $args);
+
+		// Already queried, repopulate the form with selected items
+		if (!empty($_POST['cftf_action'])) {
+			$args['selected'] = isset($_POST['cftf_authors']) ? $_POST['cftf_authors'] : array();
+		}
+		$args['selected'] = (array) $args['selected'];
 
 		// Always need cftf-author-filter as a class so chosen can target it
 		if (!empty($args['class'])) {
@@ -121,11 +146,11 @@ class CF_Taxonomy_Filter {
 		}
 
 
-		$output = '<select name="cftf_authors"'.self::_build_attrib_string($args).'>';
+		$output = '<select name="cftf_authors[]"'.self::_build_attrib_string($args).'>';
 
 		foreach ($users as $user) {
 			// @TODO allow for multiple select and selected? Would need to use an OR here in query
-			$output .= '<option value="'.$user->ID.'"'.selected($args['selected'], $user->data->user_login, false).'>'.esc_html($user->data->display_name).'</option>';
+			$output .= '<option value="'.$user->ID.'"'.selected(in_array($user->ID, $args['selected']), true, false).'>'.esc_html($user->data->display_name).'</option>';
 		}
 
 		$output .= '</select>';
@@ -144,6 +169,38 @@ class CF_Taxonomy_Filter {
 		echo '<input type="submit"'.self::_build_attrib_string($args).' />';
 	}
 
+	public static function queried_form() {
+
+		// The existing form can be modified for a new search, need to keep original data around
+		if (isset($_POST['cftf_action']) && $_POST['cftf_action'] == 'filter') {
+			$output = '
+<form id="cftf-query" method="POST" style="display:none;">';
+			if (!empty($_POST['cftf_date']['start'])) {
+				$output .= '<input type="hidden" name="cftf_date[start]" value="'.esc_attr($_POST['cftf_date']['start']).'" />';
+			}
+			if (!empty($_POST['cftf_date']['end'])) {
+				$output .= '<input type="hidden" name="cftf_date[start]" value="'.esc_attr($_POST['cftf_date']['start']).'" />';
+			}
+			if (!empty($_POST['cftf_authors'])) {
+				foreach ((array) $_POST['cftf_authors'] as $author_id) {
+					$output .= '<input type="hidden" name="cftf_authors[]" value="'.esc_attr($author_id).'" />';
+				}
+			}
+			if (!empty($_POST['cftf_taxonomies']) && is_array($_POST['cftf_taxonomies'])) {
+				foreach ($_POST['cftf_taxonomies'] as $taxonomy => $terms) {
+					if (is_array($terms)) {
+						foreach ($terms as $term_id) {
+							$output .= '<input type="hidden" name="'.esc_attr('cftf_taxonomies['.$taxonomy.'][]').'" value="'.esc_attr($term_id).'" />';
+						}
+					}
+				}
+			}
+			$output .='
+</form>';
+			echo $output;
+		}
+	}
+
 	public static function start_form($args = array()) {
 		$defaults = array(
 			'id' => 'cftf-filter',
@@ -153,14 +210,14 @@ class CF_Taxonomy_Filter {
 
 		$args = array_merge($defaults, $args);
 
+		self::queried_form();
+
 		echo '
 <form method="POST"'.self::_build_attrib_string($args).'>';
 	}
 
 	public static function end_form() {
 		echo '
-	<input type="hidden" name="cftf_override" value="0" />
-	<input type="hidden" name="cftf_logic" value="AND" />
 	<input type="hidden" name="cftf_action" value="filter" />
 </form>';
 	}
@@ -253,8 +310,8 @@ class CF_Taxonomy_Filter {
 			$query_obj->query_vars['author'] = implode(',', (array) $_POST['cftf_authors']);
 		}
 
-		if (!empty($_POST['cftf_tax']) && is_array($_POST['cftf_tax'])) {
-			foreach ($_POST['cftf_tax'] as $taxonomy => $terms) {
+		if (!empty($_POST['cftf_taxonomies']) && is_array($_POST['cftf_taxonomies'])) {
+			foreach ($_POST['cftf_taxonomies'] as $taxonomy => $terms) {
 				$query_obj->query_vars['tax_query'][] = array(
 					'taxonomy' => $taxonomy,
 					'field' => 'ids',
@@ -272,6 +329,14 @@ class CF_Taxonomy_Filter {
 			$query_obj->query_vars['suppress_filters'] = 0;
 			add_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
 		}
+	}
+
+	function the_content() {
+		do_action('cftf_content');	
+	}
+
+	function navigation() {
+		// Controlled by sending previous data in a hidden form
 
 	}
 }
