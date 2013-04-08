@@ -5,6 +5,41 @@ function cftf_build_form($args) {
 	$cftf->build_form();
 }
 
+function cftf_enqueue_scripts() {
+	// Figure out the URL for this file.
+	$parent_dir = trailingslashit(get_template_directory());
+	$child_dir = trailingslashit(get_stylesheet_directory());
+
+	$plugin_dir = trailingslashit(basename(__DIR__));
+	$file = basename(__FILE__);
+
+	if (file_exists($parent_dir.'functions/'.$plugin_dir.$file)) {
+		$url = trailingslashit(get_template_directory_uri()).'functions/'.$plugin_dir;
+	}
+	else if (file_exists($parent_dir.'plugins/'.$plugin_dir.$file)) {
+		$url = trailingslashit(get_template_directory_uri()).'plugins/'.$plugin_dir;
+	}
+	else if ($child_dir !== $parent_dir && file_exists($child_dir.'functions/'.$plugin_dir.$file)) {
+		$url = trailingslashit(get_stylesheet_directory_uri()).'functions/'.$plugin_dir;
+	}
+	else if ($child_dir !== $parent_dir && file_exists($child_dir.'plugins/'.$plugin_dir.$file)) {
+		$url = trailingslashit(get_stylesheet_directory_uri()).'plugins/'.$plugin_dir;
+	}
+	else {
+		$url = plugin_dir_url(__FILE__);
+	}
+
+	wp_enqueue_script('jquery-ui-datepicker');
+	wp_enqueue_script('jquery');
+	wp_enqueue_script('chosen', $url.'lib/chosen/chosen/chosen.jquery.min.js', array('jquery'), null, true);
+	wp_enqueue_script('cftf', $url.'/taxonomy-filter.js', array('jquery', 'chosen', 'jquery-ui-datepicker'), '1.0', true);
+
+	wp_enqueue_style('chosen', $url.'/lib/chosen/chosen/chosen.css', array(), null, 'all');
+}
+add_action('wp_enqueue_scripts', 'cftf_enqueue_scripts');
+
+CF_Taxonomy_Filter::add_actions();
+
 class CF_Taxonomy_Filter {
 
 	function __construct($args) {
@@ -18,9 +53,6 @@ class CF_Taxonomy_Filter {
 
 	static function add_actions() {
 		add_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'), 11);
-
-		add_filter('next_posts_link_attributes', array('CF_Taxonomy_Filter', 'navigation_class_filter'));
-		add_filter('previous_posts_link_attributes', array('CF_Taxonomy_Filter', 'navigation_class_filter'));
 	}
 
 	public function build_form() {
@@ -106,8 +138,8 @@ class CF_Taxonomy_Filter {
 		$args = array_merge($defaults, $args);
 
 		// Set the initially selected arguments. Try for previous queried, if none exists, get the id of the term names passed in
-		if (!empty($_POST['cftf_action'])) {
-			$args['selected'] = isset($_POST['cftf_taxonomies'][$taxonomy]) ? (array) $_POST['cftf_taxonomies'][$taxonomy] : array();
+		if (!empty($_GET['cftf_action'])) {
+			$args['selected'] = isset($_GET['cftf_taxonomies'][$taxonomy]) ? (array) $_GET['cftf_taxonomies'][$taxonomy] : array();
 		}
 		else if (!empty($args['selected'])) {
 			$selected_names = (array) $args['selected'];
@@ -166,8 +198,8 @@ class CF_Taxonomy_Filter {
 		$args = array_merge($defaults, $args);
 
 		// Already queried, repopulate the form with selected items
-		if (!empty($_POST['cftf_action'])) {
-			$args['selected'] = isset($_POST['cftf_authors']) ? $_POST['cftf_authors'] : array();
+		if (!empty($_GET['cftf_action'])) {
+			$args['selected'] = isset($_GET['cftf_authors']) ? $_GET['cftf_authors'] : array();
 		}
 		$args['selected'] = (array) $args['selected'];
 
@@ -214,41 +246,6 @@ class CF_Taxonomy_Filter {
 	}
 
 	/**
-	 * Generates and echos a hidden form based on submitted filter data
-	 **/ 
-	public static function queried_form() {
-		// The existing form can be modified for a new search, need to keep original data around so we can paginate it
-		if (isset($_POST['cftf_action']) && $_POST['cftf_action'] == 'filter') {
-			$output = '
-<form id="cftf-query" method="POST" style="display:none;">';
-			if (!empty($_POST['cftf_date']['start'])) {
-				$output .= '<input type="hidden" name="cftf_date[start]" value="'.esc_attr($_POST['cftf_date']['start']).'" />';
-			}
-			if (!empty($_POST['cftf_date']['end'])) {
-				$output .= '<input type="hidden" name="cftf_date[start]" value="'.esc_attr($_POST['cftf_date']['start']).'" />';
-			}
-			if (!empty($_POST['cftf_authors'])) {
-				foreach ((array) $_POST['cftf_authors'] as $author_id) {
-					$output .= '<input type="hidden" name="cftf_authors[]" value="'.esc_attr($author_id).'" />';
-				}
-			}
-			if (!empty($_POST['cftf_taxonomies']) && is_array($_POST['cftf_taxonomies'])) {
-				foreach ($_POST['cftf_taxonomies'] as $taxonomy => $terms) {
-					if (is_array($terms)) {
-						foreach ($terms as $term_id) {
-							$output .= '<input type="hidden" name="'.esc_attr('cftf_taxonomies['.$taxonomy.'][]').'" value="'.esc_attr($term_id).'" />';
-						}
-					}
-				}
-			}
-			$output .='
-	<input type="hidden" name="cftf_action" value="filter" />
-</form>';
-			echo $output;
-		}
-	}
-
-	/**
 	 * Opens the form tag, as well as creating a hidden form of previous
 	 * filter data which is utilized for pagination
 	 *
@@ -267,7 +264,7 @@ class CF_Taxonomy_Filter {
 		self::queried_form();
 
 		echo '
-<form method="POST"'.self::_build_attrib_string($args).'>';
+<form method="GET"'.self::_build_attrib_string($args).'>';
 	}
 
 	public static function end_form() {
@@ -339,8 +336,8 @@ class CF_Taxonomy_Filter {
 		remove_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
 		global $wpdb;
 		
-		if (!empty($_POST['cftf_date']['start'])) {
-			$php_date = strtotime($_POST['cftf_date']['start']);
+		if (!empty($_GET['cftf_date']['start'])) {
+			$php_date = strtotime($_GET['cftf_date']['start']);
 			$mysql_date = date('Y-m-d H:i:s', $php_date);
 			$date_where = $wpdb->prepare("AND $wpdb->posts.post_date > %s", $mysql_date);
 			if (!empty($where)) {
@@ -351,8 +348,8 @@ class CF_Taxonomy_Filter {
 			}
 		}
 
-		if (!empty($_POST['cftf_date']['end'])) {
-			$php_date = strtotime($_POST['cftf_date']['end']);
+		if (!empty($_GET['cftf_date']['end'])) {
+			$php_date = strtotime($_GET['cftf_date']['end']);
 			$mysql_date = date('Y-m-d H:i:s', $php_date);
 			$date_where = $wpdb->prepare("AND $wpdb->posts.post_date < %s", $mysql_date);
 			if (!empty($where)) {
@@ -371,7 +368,7 @@ class CF_Taxonomy_Filter {
      **/
 	public static function pre_get_posts($query_obj) {
 		global $cftl_previous, $wp_rewrite;
-		if (!$query_obj->is_main_query() || !isset($_POST['cftf_action']) || $_POST['cftf_action'] != 'filter') {
+		if (!$query_obj->is_main_query() || !isset($_GET['cftf_action']) || $_GET['cftf_action'] != 'filter') {
 			return;
 		}
 		remove_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'));
@@ -381,13 +378,13 @@ class CF_Taxonomy_Filter {
 		);
 
 		$query_obj->is_search = true;
-		if (!empty($_POST['cftf_authors'])) {
+		if (!empty($_GET['cftf_authors'])) {
 			// WP_Query doesnt accept an array of authors, sad panda 8:(
-			$query_obj->query_vars['author'] = implode(',', (array) $_POST['cftf_authors']);
+			$query_obj->query_vars['author'] = implode(',', (array) $_GET['cftf_authors']);
 		}
 
-		if (!empty($_POST['cftf_taxonomies']) && is_array($_POST['cftf_taxonomies'])) {
-			foreach ($_POST['cftf_taxonomies'] as $taxonomy => $terms) {
+		if (!empty($_GET['cftf_taxonomies']) && is_array($_GET['cftf_taxonomies'])) {
+			foreach ($_GET['cftf_taxonomies'] as $taxonomy => $terms) {
 				$query_obj->query_vars['tax_query'][] = array(
 					'taxonomy' => $taxonomy,
 					'field' => 'ids',
@@ -401,84 +398,12 @@ class CF_Taxonomy_Filter {
 		}
 
 		// Have to manually filter date range
-		if (!empty($_POST['cftf_date']['start']) || !empty($_POST['cftf_date']['end'])) {
+		if (!empty($_GET['cftf_date']['start']) || !empty($_GET['cftf_date']['end'])) {
 			$query_obj->query_vars['suppress_filters'] = 0;
 			add_filter('posts_where', array('CF_Taxonomy_Filter', 'posts_where'));
 		}
 	}
-
-	function the_content() {
-		do_action('cftf_content');	
-	}
-
-	/**
-	 * Addd classes in a non destructive way to navigation links for pagination support (through js)
-	 *
-	 * @return String string of attributes with the cftf-navigation class added
-	 **/ 
-	function navigation_class_filter($attrs_string) {
-		// The filter this runs on passes in a complete attribute string
-		// Regex to be sure we aren't overwriting other filters' modifications
-		$regex = '/class=[\'\"]([^"\']*)[\'\"]/'; 
-		if (preg_match($regex, $attrs_string, $matches)) {
-			$classes = $matches[1];
-			$attrib = $matchs[0];
-			$classes .= ' cftf-navigation';
-			$attrs_string = str_replace($attrib, 'classes="'.$classes.'"', $attrs_string);
-		}
-		else if (empty($attrs_string)) {
-			$attrs_string = 'class="cftf-navigation"';
-		}
-		else {
-			$attrs_string .= ' class="cftf-navigation"';
-		}
-
-		return $attrs_string;
-	}
-
-	function navigation_next() {
-
-	}
-
-	function navigation_previous() {
-
-	}
 }
-
-CF_Taxonomy_Filter::add_actions();
-
-function cftf_enqueue_scripts() {
-	// Figure out the URL for this file.
-	$parent_dir = trailingslashit(get_template_directory());
-	$child_dir = trailingslashit(get_stylesheet_directory());
-
-	$plugin_dir = trailingslashit(basename(__DIR__));
-	$file = basename(__FILE__);
-
-	if (file_exists($parent_dir.'functions/'.$plugin_dir.$file)) {
-		$url = trailingslashit(get_template_directory_uri()).'functions/'.$plugin_dir;
-	}
-	else if (file_exists($parent_dir.'plugins/'.$plugin_dir.$file)) {
-		$url = trailingslashit(get_template_directory_uri()).'plugins/'.$plugin_dir;
-	}
-	else if ($child_dir !== $parent_dir && file_exists($child_dir.'functions/'.$plugin_dir.$file)) {
-		$url = trailingslashit(get_stylesheet_directory_uri()).'functions/'.$plugin_dir;
-	}
-	else if ($child_dir !== $parent_dir && file_exists($child_dir.'plugins/'.$plugin_dir.$file)) {
-		$url = trailingslashit(get_stylesheet_directory_uri()).'plugins/'.$plugin_dir;
-	}
-	else {
-		$url = plugin_dir_url(__FILE__);
-	}
-
-	wp_enqueue_script('jquery-ui-datepicker');
-	wp_enqueue_script('jquery');
-	wp_enqueue_script('chosen', $url.'lib/chosen/chosen/chosen.jquery.min.js', array('jquery'), null, true);
-	wp_enqueue_script('cftf', $url.'/taxonomy-filter.js', array('jquery', 'chosen', 'jquery-ui-datepicker'), '1.0', true);
-
-	wp_enqueue_style('chosen', $url.'/lib/chosen/chosen/chosen.css', array(), null, 'all');
-}
-add_action('wp_enqueue_scripts', 'cftf_enqueue_scripts');
 
 /* Potential arguments for constructor
 $args = array(
