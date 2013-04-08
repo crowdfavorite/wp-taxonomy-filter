@@ -30,7 +30,7 @@
  * date_options		Array of arrays with 'start' and 'end' as keys. Nested arrays are options
  *					for 'start' or 'end', strictly attributes on the input elements.
  **/ 
-function cftf_build_form($args) {
+function cftf_build_form($args = array()) {
 	$cftf = new CF_Taxonomy_Filter($args);
 	$cftf->build_form();
 }
