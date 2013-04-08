@@ -139,7 +139,7 @@ class CF_Taxonomy_Filter {
 
 		// Set the initially selected arguments. Try for previous queried, if none exists, get the id of the term names passed in
 		if (!empty($_GET['cftf_action'])) {
-			$args['selected'] = isset($_GET['cftf_taxonomies'][$taxonomy]) ? (array) $_GET['cftf_taxonomies'][$taxonomy] : array();
+			$args['selected'] = isset($_GET['cfct_tax'][$taxonomy]) ? (array) $_GET['cfct_tax'][$taxonomy] : array();
 		}
 		else if (!empty($args['selected'])) {
 			$selected_names = (array) $args['selected'];
@@ -158,7 +158,7 @@ class CF_Taxonomy_Filter {
 		$terms = get_terms($taxonomy, array('hide_empty' => false));
 		
 		// Build the select form element
-		$output = '<select name="'.esc_attr('cftf_taxonomies['.$taxonomy.'][]').'"'.self::_build_attrib_string($args);
+		$output = '<select name="'.esc_attr('cfct_tax['.$taxonomy.'][]').'"'.self::_build_attrib_string($args);
 		if ($args['multiple']) {
 			$output .= 'multiple ';
 		}
@@ -397,8 +397,8 @@ class CF_Taxonomy_Filter {
 			$query_obj->query_vars['author'] = implode(',', (array) $_GET['cftf_authors']);
 		}
 
-		if (!empty($_GET['cftf_taxonomies']) && is_array($_GET['cftf_taxonomies'])) {
-			foreach ($_GET['cftf_taxonomies'] as $taxonomy => $terms) {
+		if (!empty($_GET['cfct_tax']) && is_array($_GET['cfct_tax'])) {
+			foreach ($_GET['cfct_tax'] as $taxonomy => $terms) {
 				$query_obj->query_vars['tax_query'][] = array(
 					'taxonomy' => $taxonomy,
 					'field' => 'ids',
