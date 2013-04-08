@@ -18,6 +18,9 @@ class CF_Taxonomy_Filter {
 
 	static function add_actions() {
 		add_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'), 11);
+
+		add_filter('next_posts_link_attributes', array('CF_Taxonomy_Filter', 'navigation_class_filter'));
+		add_filter('previous_posts_link_attributes', array('CF_Taxonomy_Filter', 'navigation_class_filter'));
 	}
 
 	public function build_form() {
@@ -239,6 +242,7 @@ class CF_Taxonomy_Filter {
 				}
 			}
 			$output .='
+	<input type="hidden" name="cftf_action" value="filter" />
 </form>';
 			echo $output;
 		}
@@ -407,9 +411,29 @@ class CF_Taxonomy_Filter {
 		do_action('cftf_content');	
 	}
 
-	function navigation() {
-		// Controlled by sending previous data in a hidden form (see JS)
+	/**
+	 * Addd classes in a non destructive way to navigation links for pagination support (through js)
+	 *
+	 * @return String string of attributes with the cftf-navigation class added
+	 **/ 
+	function navigation_class_filter($attrs_string) {
+		// The filter this runs on passes in a complete attribute string
+		// Regex to be sure we aren't overwriting other filters' modifications
+		$regex = '/class=[\'\"]([^"\']*)[\'\"]/'; 
+		if (preg_match($regex, $attrs_string, $matches)) {
+			$classes = $matches[1];
+			$attrib = $matchs[0];
+			$classes .= ' cftf-navigation';
+			$attrs_string = str_replace($attrib, 'classes="'.$classes.'"', $attrs_string);
+		}
+		else if (empty($attrs_string)) {
+			$attrs_string = 'class="cftf-navigation"';
+		}
+		else {
+			$attrs_string .= ' class="cftf-navigation"';
+		}
 
+		return $attrs_string;
 	}
 
 	function navigation_next() {
