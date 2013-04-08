@@ -8,7 +8,7 @@ There is a function `cftf_build_form` which accepts a list of arguments to autom
 
 
 ## Build your own
-Instead of passing parameters to the `cftf_build_form` function, you can build your own form to change ordering or add HTML within the form elements. An exmple is provided below.
+Instead of passing parameters to the `cftf_build_form` function, you can build your own form to change ordering or add additional HTML within the form. An exmple is provided below.
 
 
 ## Examples
@@ -56,9 +56,11 @@ Instead of passing parameters to the `cftf_build_form` function, you can build y
 	<?php CF_Taxonomy_Filter::author_select(array()); ?>
 	</div>
 	<div id="date-range">
-	<?php CF_Taxonomy_Filter::date_filter('start' => array(
+	<?php CF_Taxonomy_Filter::date_filter(array(
+			'start' => array(
 				'id' => 'start_input'
-			)); ?>
+			)
+		)); ?>
 	</div>
 	<div id="taxonomies">
 	<?php 
