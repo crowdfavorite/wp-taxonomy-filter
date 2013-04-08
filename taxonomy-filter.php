@@ -1,5 +1,35 @@
 <?php 
 
+/** 
+ * Build and echo a posts filter form. See README for constructing one manually and examples.
+ *
+ * @param $args Array of arguments. Note that all 'option' arguments accept any 
+ * additional key value pair that is permitted through CF_Taxonomy_Filter::allowed_attributes
+ * 
+ * form_options	 	Array of options, strictly attributes on the opening form element
+ *
+ * taxonomies		Array of arrays with the taxonomy name being the key and the second array
+ *					an options array for that taxonomy. An options array is not required and will
+ *					use default values if not set.
+ *					'multiple' controls wether or not multiple terms can be selected. 
+ *					'selected' is an array term names which should be pre selected on form output. 
+ *					'data-placeholder' is placeholder text.
+ *					'prefix' allows you to add a prefix to all the term names for displayed
+ *
+ * authors 			true/false whether or not to display the author filter feature
+ *
+ * author_options	Array of options controlling author filter output
+ *					'multiple' key controls wether or not multiple authors can be selected. 
+ *					'user_query' array of WP_User_Query arguments to control which users are shown
+ *					for selection. Default is all users.
+ *
+ * submit_options	Array of options, strictly attributes on the input button
+ *
+ * date 			true/false whether to show a date range filter
+ *
+ * date_options		Array of arrays with 'start' and 'end' as keys. Nested arrays are options
+ *					for 'start' or 'end', strictly attributes on the input elements.
+ **/ 
 function cftf_build_form($args) {
 	$cftf = new CF_Taxonomy_Filter($args);
 	$cftf->build_form();
@@ -43,7 +73,7 @@ CF_Taxonomy_Filter::add_actions();
 class CF_Taxonomy_Filter {
 
 	function __construct($args) {
-		// These keys are always required so we don't have to think about them later.
+		// These keys are always required. Set them here so we don't have to think about existence later.
 		$default_keys = array(
 			'form_options' => array(),
 			'submit_options' => array(),
@@ -52,9 +82,10 @@ class CF_Taxonomy_Filter {
 	}
 
 	static function add_actions() {
-		add_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'), 11);
+		add_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'));
 	}
 
+	// Builds a form based on arguments passed into the constructor
 	public function build_form() {
 		self::start_form($this->options['form_options']);
 
@@ -75,8 +106,6 @@ class CF_Taxonomy_Filter {
 		}
 
 		self::submit_button($this->options['submit_options']);
-
-		self::the_content();
 
 		self::end_form();
 	}
@@ -125,7 +154,7 @@ class CF_Taxonomy_Filter {
 		if (!taxonomy_exists($taxonomy)) {
 			return;
 		}
-
+		
 		$tax_obj = get_taxonomy($taxonomy);
 
 		$defaults = array(
@@ -136,6 +165,8 @@ class CF_Taxonomy_Filter {
 		);
 
 		$args = array_merge($defaults, $args);
+		// Always need cftf-tax-filter as a class so chosen can target it
+		$args = self::_add_class('cftf-tax-select', $args);
 
 		// Set the initially selected arguments. Try for previous queried, if none exists, get the id of the term names passed in
 		if (!empty($_GET['cftf_action'])) {
@@ -151,9 +182,6 @@ class CF_Taxonomy_Filter {
 				}
 			}
 		}
-
-		// Always need cftf-tax-filter as a class so chosen can target it
-		$args = self::_add_class('cftf-tax-select', $args);
 
 		$terms = get_terms($taxonomy, array('hide_empty' => false));
 		
@@ -177,7 +205,7 @@ class CF_Taxonomy_Filter {
 	}
 
 	/**
-	 * Echo a submit form element. 
+	 * Echo a user filter form element. 
 	 *
 	 * @param $args array Optional array of arguments. 
 	 *		'data-placeholder' is placeholder text for the input
@@ -264,6 +292,7 @@ class CF_Taxonomy_Filter {
 		);
 
 		$args = array_merge($defaults, $args);
+		// Used in js for URL cleanup
 		$args = self::_add_class('cftf-filter', $args);
 
 		echo '
@@ -379,19 +408,14 @@ class CF_Taxonomy_Filter {
      * Override default query with the filtered values
      **/
 	public static function pre_get_posts($query_obj) {
-		global $cftl_previous, $wp_rewrite;
 		if (!$query_obj->is_main_query() || !isset($_GET['cftf_action']) || $_GET['cftf_action'] != 'filter') {
 			return;
 		}
 		remove_action('pre_get_posts', array('CF_Taxonomy_Filter', 'pre_get_posts'));
-		$query_args = array(
-			// @TODO figure out best way to support pagination
-			'posts_per_page' => -1,
-		);
 
 		// Make WordPress think this is a search and render the search page
 		$query_obj->is_search = true;
-		
+
 		if (!empty($_GET['cftf_authors'])) {
 			// WP_Query doesnt accept an array of authors, sad panda 8:(
 			$query_obj->query_vars['author'] = implode(',', (array) $_GET['cftf_authors']);
@@ -418,58 +442,3 @@ class CF_Taxonomy_Filter {
 		}
 	}
 }
-
-/* Potential arguments for constructor
-$args = array(
-	'form_options' => array(
-		// Array of allowed element attributes
-	),
-	'taxonomies' => array(
-		'projects' => array(
-			'multiple' => false,
-			// Term names
-			'selected' => array(
-				'Project 1',
-				'Project 2',
-				'SecretProject'
-			), 
-			'prefix' => '@',
-			'data-placeholder' => 'Projects'
-		),
-		'post_tag' => array(
-			'multiple' => true,
-			'selected' => array(
-					'tag1',
-					'you\'re it',
-					'freeze tag'
-				),
-				'prefix' => '#',
-			'data-placeholder' => 'The Great Tag Filter'
-		),
-	),
-	'authors' => 1, // Determines wether or not to display an author filter
-	'author_options' => array(
-		'multiple' => true,
-		'user_query' => array(
-			'role' => 'editor',
-		),
-		// Element attributes
-	),
-	'submit_options' => array(
-		'text' => 'Submit', // Submit button value
-		// Element attributes
-	),
-	'date' => 1, // Determines wether or not to display a date range filter
-	'date_options' => array(
-		'start' => array(
-			// Element attributes
-		),
-		'end' => array(
-			// Element attributes
-		)
-	),
-)
-*/
-
-
-?>
