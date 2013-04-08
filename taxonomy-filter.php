@@ -97,10 +97,10 @@ class CF_Taxonomy_Filter {
 		);
 
 		$start_args = array_merge($start_defaults, $start_args);
-		$start_args = self::_add_class($start_args, 'cftf-date');
+		$start_args = self::_add_class('cftf-date', $start_args);
 
 		$end_args = array_merge($end_defaults, $end_args);
-		$end_args = self::_add_class($end_args, 'cftf-date');
+		$end_args = self::_add_class('cftf-date', $end_args);
 
 		echo sprintf(_x('%s to %s', 'start date range input TO end date range input', 'cftf'), 
 			'<input type="text" name="cftf_date[start]"'.self::_build_attrib_string($start_args).' />', 
@@ -153,7 +153,7 @@ class CF_Taxonomy_Filter {
 		}
 
 		// Always need cftf-tax-filter as a class so chosen can target it
-		$args = self::_add_class($args, 'cftf-tax-select');
+		$args = self::_add_class('cftf-tax-select', $args);
 
 		$terms = get_terms($taxonomy, array('hide_empty' => false));
 		
@@ -162,7 +162,9 @@ class CF_Taxonomy_Filter {
 		if ($args['multiple']) {
 			$output .= 'multiple ';
 		}
-		$output .= '>';
+		// Empty option for single select removal for Chosen
+		$output .= '>
+		<option value=""></option>';
 
 		foreach ($terms as $term) {
 			// @TODO allow for multiple initially selected?
@@ -204,7 +206,7 @@ class CF_Taxonomy_Filter {
 		$args['selected'] = (array) $args['selected'];
 
 		// Always need cftf-author-filter as a class so chosen can target it
-		$args = self::_add_class($args, 'cftf-author-select');
+		$args = self::_add_class('cftf-author-select', $args);
 
 		$user_query = new WP_User_Query($args['user_query']);
 		if (!empty($user_query->results)) {
@@ -215,7 +217,9 @@ class CF_Taxonomy_Filter {
 		if ($args['multiple']) {
 			$output .= 'multiple ';
 		}
-		$output .= '>';
+		// Empty option for single select removal support
+		$output .= '>
+		<option value=""></option>';
 
 		foreach ($users as $user) {
 			// @TODO allow for multiple select and selected? Would need to use an OR here in query
@@ -246,7 +250,7 @@ class CF_Taxonomy_Filter {
 	}
 
 	/**
-	 * Opens the form tag, as well as creating a hidden form of previous
+	 * Opens the form tag
 	 * filter data which is utilized for pagination
 	 *
 	 * @param $args array Option argument array, each of which are just attributes on the form element
@@ -260,20 +264,28 @@ class CF_Taxonomy_Filter {
 		);
 
 		$args = array_merge($defaults, $args);
-
-		self::queried_form();
+		$args = self::_add_class('cftf-filter', $args);
 
 		echo '
 <form method="GET"'.self::_build_attrib_string($args).'>';
 	}
 
+	// Closes the form and adds the action
 	public static function end_form() {
 		echo '
 	<input type="hidden" name="cftf_action" value="filter" />
 </form>';
 	}
 
-	static function _add_class($args, $class) {
+	/**
+	 * Adds a class to a set of arguemnts. Adds the class to the end
+	 * of existing classes if they exist, otherwise just sets the argument
+	 * 
+	 * @param String $class Class to append (on the class index)
+	 * @param $args array of arguments
+	 * @return Array argument array passed in with the additional class
+	 **/ 
+	static function _add_class($class, $args) {
 		if (!empty($args['class'])) {
 			$args['class'] .= ' '.$class;
 		}
@@ -377,7 +389,9 @@ class CF_Taxonomy_Filter {
 			'posts_per_page' => -1,
 		);
 
+		// Make WordPress think this is a search and render the search page
 		$query_obj->is_search = true;
+		
 		if (!empty($_GET['cftf_authors'])) {
 			// WP_Query doesnt accept an array of authors, sad panda 8:(
 			$query_obj->query_vars['author'] = implode(',', (array) $_GET['cftf_authors']);

@@ -1,7 +1,17 @@
 (function($) {
 	$(document).on('ready', function() {
-		$('.cftf-tax-select').chosen();
-		$('.cftf-author-select').chosen();
+		$('.cftf-tax-select').chosen({
+			allow_single_deselect: true
+		});
+		$('.cftf-author-select').chosen({
+			allow_single_deselect: true
+		});
 		$('.cftf-date').datepicker();
 	});
+
+	// Clean up the URLs
+	$('form.cftf-filter').on('submit', function() {
+		$(this).children(':input[value=""]').attr('disabled', 'disabled');
+		return true;
+    });
 })(jQuery);
