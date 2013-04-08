@@ -11,24 +11,27 @@
  * taxonomies		Array of arrays with the taxonomy name being the key and the second array
  *					an options array for that taxonomy. An options array is not required and will
  *					use default values if not set.
- *					'multiple' controls wether or not multiple terms can be selected. 
- *					'selected' is an array term names which should be pre selected on form output. 
- *					'data-placeholder' is placeholder text.
- *					'prefix' allows you to add a prefix to all the term names for displayed
+ *					'multiple' 			=> controls wether or not multiple terms can be selected. 
+ *					'selected' 			=> an array term names which should be pre selected on form output. 
+ *					'data-placeholder' 	=> placeholder text. Defaults to taxonomy label.
+ *					'prefix'			=> allows you to add a prefix to all the term names for displayed
  *
  * authors 			true/false whether or not to display the author filter feature
  *
  * author_options	Array of options controlling author filter output
- *					'multiple' key controls wether or not multiple authors can be selected. 
- *					'user_query' array of WP_User_Query arguments to control which users are shown
- *					for selection. Default is all users.
+ *					'multiple' 			=> key controls wether or not multiple authors can be selected. 
+ *					'user_query' 		=> array of WP_User_Query arguments to control which users are shown
+ *										   for selection. Default is all users.
  *
- * submit_options	Array of options, strictly attributes on the input button
+ * submit_options	Array of options
+ *					'text' 				=> Placeholder text. Defaults to 'Submit'
  *
  * date 			true/false whether to show a date range filter
  *
  * date_options		Array of arrays with 'start' and 'end' as keys. Nested arrays are options
- *					for 'start' or 'end', strictly attributes on the input elements.
+ *					for 'start' or 'end'
+ *					'text' 				=> Placeholder text (withing option array for start or end)
+ *										   defaults to 'Start Date' and 'End Date'
  **/ 
 function cftf_build_form($args = array()) {
 	$cftf = new CF_Taxonomy_Filter($args);
