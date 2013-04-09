@@ -24,7 +24,7 @@
  *										   for selection. Default is all users.
  *
  * submit_options	Array of options
- *					'text' 				=> Placeholder text. Defaults to 'Submit'
+ *					'value' 			=>  Defaults to 'Submit'
  *
  * date 			true/false whether to show a date range filter
  *
@@ -36,6 +36,10 @@
 function cftf_build_form($args = array()) {
 	$cftf = new CF_Taxonomy_Filter($args);
 	$cftf->build_form();
+}
+
+function cftf_is_filter() {
+	return (isset($_REQUST['cftf_action']) && $_REQUST['cftf_action'] == 'filter');
 }
 
 function cftf_enqueue_scripts() {
@@ -108,7 +112,14 @@ class CF_Taxonomy_Filter {
 		}
 
 		if (!empty($this->options['authors'])) {
-			self::author_select($this->options['authors']);
+			$author_options = !empty($this->options['author_options']) ? $this->options['author_options'] : array();
+			self::author_select($author_options);
+		}
+
+		if (!empty($this->options['date'])) {
+			$start_options = !empty($this->options['date_options']['start']) ? $this->options['date_options']['start'] : array();
+			$end_options = !empty($this->options['date_options']['end']) ? $this->options['date_options']['end'] : array();
+			self::date_filter($start_options, $end_options);
 		}
 
 		self::submit_button($this->options['submit_options']);
@@ -245,6 +256,9 @@ class CF_Taxonomy_Filter {
 		if (!empty($user_query->results)) {
 			$users = apply_filters('cftf_users', $user_query->results);
 		}
+		else {
+			$users = array();
+		}
 
 		$output = '<select name="cftf_authors[]"'.self::_build_attrib_string($args);
 		if ($args['multiple']) {
@@ -272,7 +286,7 @@ class CF_Taxonomy_Filter {
 	 **/
 	public static function submit_button($args = array()) {
 		$defaults = array(
-			'text' => __('Submit', 'cftf'),
+			'value' => __('Submit', 'cftf'),
 			'class' => '',
 			'id' => '',
 		);
@@ -370,6 +384,7 @@ class CF_Taxonomy_Filter {
 			'placeholder',
 			'data-placeholder',
 			'tabindex',
+			'value'
 		));
 	}
 
@@ -418,6 +433,9 @@ class CF_Taxonomy_Filter {
 
 		// Make WordPress think this is a search and render the search page
 		$query_obj->is_search = true;
+		$query_obj->is_home = false;
+		$query_obj->is_front_page = false;
+		$query_obj->is_page = false;
 
 		if (!empty($_GET['cftf_authors'])) {
 			// WP_Query doesnt accept an array of authors, sad panda 8:(
