@@ -67,7 +67,7 @@ function cftf_enqueue_scripts() {
 	}
 
 	// In case the end user has not used one of the usual suspects
-	$url = apply_filters('cftf_url', $url);
+	$url = trailingslashit(apply_filters('cftf_url', $url));
 
 	wp_enqueue_script('jquery-ui-datepicker');
 	wp_enqueue_script('jquery');
