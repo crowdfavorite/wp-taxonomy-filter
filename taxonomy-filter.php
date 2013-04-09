@@ -62,6 +62,9 @@ function cftf_enqueue_scripts() {
 		$url = plugin_dir_url(__FILE__);
 	}
 
+	// In case the end user has not used one of the usual suspects
+	$url = apply_filters('cftf_url', $url);
+
 	wp_enqueue_script('jquery-ui-datepicker');
 	wp_enqueue_script('jquery');
 	wp_enqueue_script('chosen', $url.'lib/chosen/chosen/chosen.jquery.min.js', array('jquery'), null, true);
@@ -114,7 +117,7 @@ class CF_Taxonomy_Filter {
 	}
 
 	/**
-	 * Echo a date range filter form elemtn
+	 * Echo a date range filter form element
 	 *
 	 * @param $start_args array Optional array of arguments for start range input. All options are attributes on the element.
 	 * @param $end_args array Optional array of arguments for end range input. All options are attributes on the element.
@@ -198,7 +201,6 @@ class CF_Taxonomy_Filter {
 		<option value=""></option>';
 
 		foreach ($terms as $term) {
-			// @TODO allow for multiple initially selected?
 			$output .= '<option value="'.esc_attr($term->term_id).'"'.selected(in_array($term->term_id, $args['selected']), true, false).'>'.esc_html($args['prefix'].$term->name).'</option>';
 		}
 
@@ -253,7 +255,6 @@ class CF_Taxonomy_Filter {
 		<option value=""></option>';
 
 		foreach ($users as $user) {
-			// @TODO allow for multiple select and selected? Would need to use an OR here in query
 			$output .= '<option value="'.$user->ID.'"'.selected(in_array($user->ID, $args['selected']), true, false).'>'.esc_html($user->data->display_name).'</option>';
 		}
 
@@ -282,7 +283,6 @@ class CF_Taxonomy_Filter {
 
 	/**
 	 * Opens the form tag
-	 * filter data which is utilized for pagination
 	 *
 	 * @param $args array Option argument array, each of which are just attributes on the form element
 	 * @return void
