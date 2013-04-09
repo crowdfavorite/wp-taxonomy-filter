@@ -84,3 +84,6 @@ This filter controls which attributes can be added to various HTML elements base
 
 ## cftf_users
 The user options allow for a custom user search query, however `cftf_users` will return the list of users from the query prior to being displayed
+
+## cftf_url
+In case you've placed your file in a non traditional place
