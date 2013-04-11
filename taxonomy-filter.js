@@ -1,12 +1,11 @@
 (function($) {
 	$(document).on('ready', function() {
-		$('.cftf-tax-select').chosen({
+		$('.cftf-tax-select, .cftf-author-select').chosen({
 			allow_single_deselect: true
 		});
-		$('.cftf-author-select').chosen({
-			allow_single_deselect: true
+		$('.cftf-date').datepicker({
+			dateFormat: 'yy-mm-dd'
 		});
-		$('.cftf-date').datepicker();
 	});
 
 	// Clean up the URLs
