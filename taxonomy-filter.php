@@ -144,9 +144,15 @@ class CF_Taxonomy_Filter {
 
 		$start_args = array_merge($start_defaults, $start_args);
 		$start_args = self::_add_class('cftf-date', $start_args);
+		if (isset($_GET['cftf_date']['start'])) {
+			$start_args['value'] = $_GET['cftf_date']['start'];
+		}
 
 		$end_args = array_merge($end_defaults, $end_args);
 		$end_args = self::_add_class('cftf-date', $end_args);
+		if (isset($_GET['cftf_date']['end'])) {
+			$end_args['value'] = $_GET['cftf_date']['end'];
+		}
 
 		echo sprintf(_x('%s <span class="cftf-date-sep">to</span> %s', 'start date range input TO end date range input', 'cftf'), 
 			'<input type="text" name="cftf_date[start]"'.self::_build_attrib_string($start_args).' />', 
@@ -413,7 +419,7 @@ class CF_Taxonomy_Filter {
 		}
 
 		if (!empty($_GET['cftf_date']['end'])) {
-			$php_date = strtotime($_GET['cftf_date']['end']);
+			$php_date = strtotime($_GET['cftf_date']['end']. ' 23:59:59');
 			$mysql_date = date('Y-m-d H:i:s', $php_date);
 			$date_where = $wpdb->prepare("AND $wpdb->posts.post_date < %s", $mysql_date);
 			if (!empty($where)) {
