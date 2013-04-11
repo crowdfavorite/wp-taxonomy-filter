@@ -39,7 +39,7 @@ function cftf_build_form($args = array()) {
 }
 
 function cftf_is_filter() {
-	return (isset($_REQUST['cftf_action']) && $_REQUST['cftf_action'] == 'filter');
+	return (isset($_REQUEST['cftf_action']) && $_REQUEST['cftf_action'] == 'filter');
 }
 
 function cftf_enqueue_scripts() {
@@ -136,10 +136,10 @@ class CF_Taxonomy_Filter {
 	 **/
 	public static function date_filter($start_args = array(), $end_args = array()) {
 		$start_defaults = array(
-			'placeholder' => __('Start Date', 'cftf'),
+			'placeholder' => __('From', 'cftf'),
 		);
 		$end_defaults = array(
-			'placeholder' => __('End Date', 'cftf'),
+			'placeholder' => __('To', 'cftf'),
 		);
 
 		$start_args = array_merge($start_defaults, $start_args);
@@ -148,7 +148,7 @@ class CF_Taxonomy_Filter {
 		$end_args = array_merge($end_defaults, $end_args);
 		$end_args = self::_add_class('cftf-date', $end_args);
 
-		echo sprintf(_x('%s to %s', 'start date range input TO end date range input', 'cftf'), 
+		echo sprintf(_x('%s <span class="cftf-date-sep">to</span> %s', 'start date range input TO end date range input', 'cftf'), 
 			'<input type="text" name="cftf_date[start]"'.self::_build_attrib_string($start_args).' />', 
 			'<input type="text" name="cftf_date[end]"'.self::_build_attrib_string($end_args).' />'
 		);
@@ -233,7 +233,7 @@ class CF_Taxonomy_Filter {
 	 **/
 	public static function author_select($args = array()) {
 		$defaults = array(
-			'multiple' => false,
+			'multiple' => true,
 			'selected' => array(),
 			'data-placeholder' => __('Author', 'cftf'),
 			'user_query' => array(
@@ -259,6 +259,11 @@ class CF_Taxonomy_Filter {
 		else {
 			$users = array();
 		}
+		
+		// only output the author filter if we have more than one author
+		if (count($users) == 1) {
+			return;
+		}
 
 		$output = '<select name="cftf_authors[]"'.self::_build_attrib_string($args);
 		if ($args['multiple']) {
@@ -269,7 +274,7 @@ class CF_Taxonomy_Filter {
 		<option value=""></option>';
 
 		foreach ($users as $user) {
-			$output .= '<option value="'.$user->ID.'"'.selected(in_array($user->ID, $args['selected']), true, false).'>'.esc_html($user->data->display_name).'</option>';
+			$output .= '<option value="'.$user->ID.'"'.selected(in_array($user->ID, $args['selected']), true, false).'>'.esc_html($user->display_name).'</option>';
 		}
 
 		$output .= '</select>';
@@ -286,7 +291,7 @@ class CF_Taxonomy_Filter {
 	 **/
 	public static function submit_button($args = array()) {
 		$defaults = array(
-			'value' => __('Submit', 'cftf'),
+			'value' => __('Apply', 'cftf'),
 			'class' => '',
 			'id' => '',
 		);
