@@ -42,6 +42,22 @@ function cftf_is_filter() {
 	return (isset($_REQUEST['cftf_action']) && $_REQUEST['cftf_action'] == 'filter');
 }
 
+function cftf_wp_title($title, $sep, $seplocation) {
+	if (cftf_is_filter()) {
+		$title = __('Filter Results', 'capsule');
+
+		if ('right' == $seplocation) {
+			$title = $title.' '.$sep.' '.$prefix;
+		} 
+		else {
+			$title = $prefix.' '.$sep.' '.$title;
+		}
+
+	}
+	return $title;
+}
+add_filter('wp_title', 'cftf_wp_title', 10, 3);
+
 function cftf_enqueue_scripts() {
 	// Figure out the URL for this file.
 	$parent_dir = trailingslashit(get_template_directory());
