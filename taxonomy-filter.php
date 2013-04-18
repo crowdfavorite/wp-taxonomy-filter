@@ -15,6 +15,7 @@
  *					'selected' 			=> an array term names which should be pre selected on form output. 
  *					'data-placeholder' 	=> placeholder text. Defaults to taxonomy label.
  *					'prefix'			=> allows you to add a prefix to all the term names for displayed
+ *					'hide_empty'		=> Whether or not to show empty terms
  *
  * authors 			true/false whether or not to display the author filter feature
  *
@@ -187,6 +188,7 @@ class CF_Taxonomy_Filter {
 	 *		'multiple' Determines whether or not multiple terms can be selected
 	 *		'selected' is an array of term names which are preselected on initial form generation
 	 * 		all additional arguments are attributes of the select box. see allowed_attributes();
+	 *		'hide_empty' Whether to display empty terms
 	 * @return void
 	 **/
 	public static function tax_filter($taxonomy, $args = array()) {
@@ -201,6 +203,7 @@ class CF_Taxonomy_Filter {
 			'multiple' => true,
 			'selected' => array(),
 			'data-placeholder' => $tax_obj->labels->name,
+			'hide_empty' => true,
 		);
 
 		$args = array_merge($defaults, $args);
@@ -222,7 +225,7 @@ class CF_Taxonomy_Filter {
 			}
 		}
 
-		$terms = get_terms($taxonomy, array('hide_empty' => false));
+		$terms = get_terms($taxonomy, array('hide_empty' => $args['hide_empty']));
 		
 		// Build the select form element
 		$output = '<select name="'.esc_attr('cfct_tax['.$taxonomy.'][]').'"'.self::_build_attrib_string($args);
