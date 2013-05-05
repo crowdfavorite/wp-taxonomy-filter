@@ -172,8 +172,8 @@ class CF_Taxonomy_Filter {
 		}
 
 		echo sprintf(_x('%s <span class="cftf-date-sep">to</span> %s', 'start date range input TO end date range input', 'cftf'), 
-			'<input type="text" name="cftf_date[start]"'.self::_build_attrib_string($start_args).' />', 
-			'<input type="text" name="cftf_date[end]"'.self::_build_attrib_string($end_args).' />'
+			'<input type="text" name="cftf_date[start]" autocomplete="off"'.self::_build_attrib_string($start_args).' />', 
+			'<input type="text" name="cftf_date[end]" autocomplete="off"'.self::_build_attrib_string($end_args).' />'
 		);
 	}
 
