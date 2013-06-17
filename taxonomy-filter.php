@@ -39,13 +39,16 @@ function cftf_build_form($args = array()) {
 	$cftf->build_form();
 }
 
+/**
+ * Determines if the current page is a filter page. Use this like 'is_search' or 'is_home'
+ **/ 
 function cftf_is_filter() {
 	return (isset($_REQUEST['cftf_action']) && $_REQUEST['cftf_action'] == 'filter');
 }
 
 function cftf_wp_title($title, $sep, $seplocation) {
 	if (cftf_is_filter()) {
-		$title = __('Filter Results', 'capsule');
+		$title = __('Filter Results', 'cftf');
 
 		if ('right' == $seplocation) {
 			$title = $title.' '.$sep.' '.$prefix;
@@ -64,7 +67,7 @@ function cftf_enqueue_scripts() {
 	$parent_dir = trailingslashit(get_template_directory());
 	$child_dir = trailingslashit(get_stylesheet_directory());
 
-	$plugin_dir = trailingslashit(basename(__DIR__));
+	$plugin_dir = trailingslashit(basename(dirname(__FILE__)));
 	$file = basename(__FILE__);
 
 	if (file_exists($parent_dir.'functions/'.$plugin_dir.$file)) {
