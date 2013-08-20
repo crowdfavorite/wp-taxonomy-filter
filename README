@@ -48,7 +48,7 @@ Instead of passing parameters to the `cftf_build_form` function, you can build y
 
 ## Manually buid the form above with input wrappers and in reverse order
 
-	<?php CF_Taxonomy_Filter::open_form(); ?>
+	<?php CF_Taxonomy_Filter::start_form(); ?>
 	<div id="submit">
 	<?php CF_Taxonomy_Filter::submit_button(); ?>
 	</div>
@@ -74,7 +74,7 @@ Instead of passing parameters to the `cftf_build_form` function, you can build y
 	));
 	?>
 	</div>
-	<?php CF_Taxonomy_Filter::close_form(); ?>
+	<?php CF_Taxonomy_Filter::end_form(); ?>
 
 
 # Filters
